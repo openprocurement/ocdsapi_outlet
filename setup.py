@@ -21,14 +21,14 @@ extra = install_requires + test_requires
 
 entry_points = {
     'release_pack': [
-        'releases = ocdsapi.outlet.run:Run',
+        'releases = ocdsapi_outlet.run:Run',
     ],
     'ocdsapi.outlets': [
-        'filesystem = ocdsapi.outlet.backends.fs:FSOutlet'
+        'filesystem = ocdsapi_outlet.backends.fs:FSOutlet'
     ]
 }
 
-setup(name='ocdsapi.outlet',
+setup(name='ocdsapi_outlet',
       version='0.1.5',
       description=DESCRIPTION,
       author='Quintagroup, Ltd.',
