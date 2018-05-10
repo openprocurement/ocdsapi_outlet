@@ -4,32 +4,41 @@ DESCRIPTION = """
 OCDS DB Dump tool
 """
 
+VERSION = "0.1.0"
 
-install_requires = [
+
+INSTALL_REQUIRES = [
     'setuptools',
     'gevent',
     'apscheduler',
-    'ocdsapi'
+    'zc.lockfile',
+    'click',
+    'ocdsapi',
+    'zope.dottedname',
+    'requests'
 ]
 
-test_requires = [
+TEST_REQUIRES = [
     'pytest',
     'pytest-cov'
 ]
 
-extra = install_requires + test_requires
+EXTRA = INSTALL_REQUIRES + TEST_REQUIRES
 
-entry_points = {
+ENTRY_POINTS = {
     'release_pack': [
-        'releases = ocdsapi_outlet.run:Run',
+        'releases = ocdsapi_outlet.run:cli',
     ],
     'ocdsapi.outlets': [
         'filesystem = ocdsapi_outlet.backends.fs:FSOutlet'
+    ],
+    'ocdsapi.resources': [
+        'jobs = ocdsapi_outlet.api:include'
     ]
 }
 
 setup(name='ocdsapi_outlet',
-      version='0.1.5',
+      version=VERSION,
       description=DESCRIPTION,
       author='Quintagroup, Ltd.',
       author_email='info@quintagroup.com',
@@ -37,8 +46,8 @@ setup(name='ocdsapi_outlet',
       include_package_data=True,
       packages=find_packages(),
       zip_safe=False,
-      install_requires=install_requires,
-      extras_require={"test": extra},
-      tests_require=test_requires,
-      entry_points=entry_points
+      install_requires=INSTALL_REQUIRES,
+      extras_require={"test": EXTRA},
+      tests_require=TEST_REQUIRES,
+      entry_points=ENTRY_POINTS
       )
