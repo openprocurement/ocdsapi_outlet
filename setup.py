@@ -3,10 +3,7 @@ from setuptools import setup, find_packages
 DESCRIPTION = """
 OCDS DB Dump tool
 """
-
 VERSION = "0.1.0"
-
-
 INSTALL_REQUIRES = [
     'setuptools',
     'gevent',
@@ -17,20 +14,24 @@ INSTALL_REQUIRES = [
     'zope.dottedname',
     'requests'
 ]
-
-TEST_REQUIRES = [
+TEST_REQUIRES = INSTALL_REQUIRES + [
     'pytest',
     'pytest-cov'
 ]
-
-EXTRA = INSTALL_REQUIRES + TEST_REQUIRES
-
+JOURNALD = INSTALL_REQUIRES + ['python-systemd']
+EXTRA = {
+    "test": TEST_REQUIRES,
+    'journald': JOURNALD
+}
 ENTRY_POINTS = {
-    'release_pack': [
-        'releases = ocdsapi_outlet.run:cli',
+    'console_scripts': [
+        'ocds-pack = ocdsapi_outlet.run:cli',
     ],
     'ocdsapi.outlets': [
-        'filesystem = ocdsapi_outlet.backends.fs:FSOutlet'
+        'fs = ocdsapi_outlet.backends.fs:FSOutlet'
+    ],
+    'ocdsapi.commands': [
+        'fs = ocdsapi_outlet.backends.fs:fs'
     ],
     'ocdsapi.resources': [
         'jobs = ocdsapi_outlet.api:include'
@@ -47,7 +48,7 @@ setup(name='ocdsapi_outlet',
       packages=find_packages(),
       zip_safe=False,
       install_requires=INSTALL_REQUIRES,
-      extras_require={"test": EXTRA},
+      extras_require=EXTRA,
       tests_require=TEST_REQUIRES,
       entry_points=ENTRY_POINTS
       )

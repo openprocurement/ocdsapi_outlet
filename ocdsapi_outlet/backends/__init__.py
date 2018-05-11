@@ -1,11 +1,14 @@
 from pkg_resources import iter_entry_points
+from ..run import cli
 
 
 BACKENDS = {
-    plugin.name: plugin.load()
-    for plugin in iter_entry_points('ocdsapi.outlets')
+    ext.name: ext.load()
+    for ext in iter_entry_points('ocdsapi.outlets')
 }
 
+for cmd in iter_entry_points('ocdsapi.commands'):
+    cli.add_command(cmd.load(), cmd.name)
 
 class ConfigurationError(Exception):
     pass

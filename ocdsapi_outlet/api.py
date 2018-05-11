@@ -1,8 +1,10 @@
 import logging
+
+from flask import jsonify
+from flask_restful import Resource
+
 from apscheduler.schedulers.gevent import GeventScheduler
 from apscheduler.executors.gevent import GeventExecutor
-from flask_restful import Resource
-from flask import jsonify
 
 
 LOGGER = logging.getLogger('ocdsapi.outlet')

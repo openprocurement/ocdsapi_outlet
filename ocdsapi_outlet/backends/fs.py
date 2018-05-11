@@ -2,19 +2,19 @@ import os
 import os.path
 import logging
 import mmap
+import click
 from zope.dottedname import resolve
 from ..run import cli
 from .base import BaseStaticStorage
 
 
 LOGGER = logging.getLogger('ocdsapi.outlets.FSOutlet')
+DEFAULT_RENDERER = 'json'
 
 
 class FSOutlet(BaseStaticStorage):
 
-    default_renderer = 'json'
-
-    def __init__(self, path, renderer=FSOutlet.default_renderer):
+    def __init__(self, path, renderer=DEFAULT_RENDERER):
         try:
             self.renderer = resolve(renderer)
             if not all((hasattr(renderer, r) for r in ('load', 'dump'))):
@@ -66,6 +66,18 @@ class FSOutlet(BaseStaticStorage):
             ))
 
 
-def run(filepath, renderer=""):
-    tool = FSOutlet(filepath, renderer):
-    
+@click.command(name='fs')
+@click.option(
+    '--renderer',
+    help='Python library to serialize jsons',
+    default='simplejson'
+    )
+@click.option(
+    '--file-path',
+    help="Destination path to store static dump",
+    required=True
+    )
+@click.pass_context
+def fs(ctx):
+    logger = ctx.obj['logger']
+    logger.info("Hello from logger")
