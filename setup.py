@@ -8,11 +8,9 @@ INSTALL_REQUIRES = [
     'setuptools',
     'gevent',
     'apscheduler',
-    'zc.lockfile',
     'click',
     'ocdsapi',
     'zope.dottedname',
-    'requests'
 ]
 TEST_REQUIRES = INSTALL_REQUIRES + [
     'pytest',
@@ -32,9 +30,6 @@ ENTRY_POINTS = {
     ],
     'ocdsapi.commands': [
         'fs = ocdsapi_outlet.backends.fs:fs'
-    ],
-    'ocdsapi.resources': [
-        'jobs = ocdsapi_outlet.api:include'
     ]
 }
 

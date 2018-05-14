@@ -1,10 +1,13 @@
+from gevent import monkey
+monkey.patch_all()
+
 import click
 import logging
 import sys
 from zc.lockfile import LockError
 from zope.dottedname.resolve import resolve
 from ocdsapi.storage import ReleaseStorage
-from .utils import interlock, setup_logger
+from .utils import setup_logger
 
 
 LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
@@ -13,7 +16,12 @@ LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
 @click.group()
 @click.option('--db-url', help="Couchdb server url", required=True)
 @click.option('--db-name', help='Database name', required=True)
-@click.option('--lockfile', help='Full path to lockfile', required=True)
+@click.option(
+    '--count',
+    help='Count of releases in package',
+    type=int,
+    default=2048
+    )
 @click.option('--log-level', help="Logging level", default='INFO')
 @click.option(
     '--log-class',
@@ -31,7 +39,7 @@ def cli(
         ctx,
         db_url,
         db_name,
-        lockfile,
+        count,
         log_level,
         log_class,
         log_format,
@@ -56,6 +64,6 @@ def cli(
         )
 
         ctx.obj['storage'] = ReleaseStorage(db_url, db_name)
-        ctx.obj['lockfile'] = lockfile
+        ctx.obj['count'] = count
     except LockError:
         LOGGER.info("Already running")

@@ -21,6 +21,10 @@ class Jobs(Resource):
             "jobs": SCHEDULER.print_jobs()
         })
 
+    def post(self):
+        """ Forse to run dump """
+    
+
 
 def include(api, **options):
     api.add_resource(

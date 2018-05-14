@@ -1,83 +1,96 @@
 import os
 import os.path
 import logging
-import mmap
 import click
-from zope.dottedname import resolve
+from contextlib import contextmanager
+from zope.dottedname.resolve import resolve
 from ..run import cli
-from .base import BaseStaticStorage
+from ..dumptool import OCDSPacker
 
 
-LOGGER = logging.getLogger('ocdsapi.outlets.FSOutlet')
+LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
 DEFAULT_RENDERER = 'json'
 
 
-class FSOutlet(BaseStaticStorage):
+class Handler:
+
+    def __init__(self, meta, handler, renderer):
+        self.meta = meta
+        self.handler = handler
+        self.renderer = renderer
+
+    def write_releases(self, releases):
+        self.meta['releases'] = releases
+        try:
+            self.renderer.dump(self.meta, self.handler)
+            LOGGER.info('Done package {}'.format(self.meta['date']))
+        except Exception as e:
+            LOGGER.fatal("Error wrinting release. error: {}".format(e))
+        finally:
+            del self.meta
+
+
+class FSOutlet:
 
     def __init__(self, path, renderer=DEFAULT_RENDERER):
         try:
             self.renderer = resolve(renderer)
-            if not all((hasattr(renderer, r) for r in ('load', 'dump'))):
+            if not all((hasattr(self.renderer, r) for r in ('load', 'dump'))):
                 raise Exception("InvalidRenderer")
         except (ImportError, Exception) as e:
             LOGGER.warn("Invalid renderer {}. Reason {}. Going back to default.".format(
                 renderer,
                 e
             ))
-            self.renderer = resolve(self.default_renderer)
+            self.renderer = resolve(DEFAULT_RENDERER)
 
         self.destination = path
         if not os.path.exists(self.destination):
             os.makedirs(self.destination)
 
-    def list_objects(self, abs=False):
-        for directory, files in os.walk(self.destination):
-            for obj in files:
-                if abs:
-                    yield os.path.abspath(obj)
-                else:
-                    yield file
-
-    def upload_object(self, data, name):
-        dst = os.path.join(self.destination, name)
+    @contextmanager
+    def start_package(self, metainfo):
+        id = metainfo['date']
+        LOGGER.info('Writing package {}'.format(metainfo.get('date')))
+        dst = '{}.json'.format(os.path.join(self.destination, id))
         try:
-            with open(dst, 'w+') as f:
-                with mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_WRITE) as mapped:
-                    try:
-                        self.renderer.dump(data, mapped)
-                    except Exception as e:
-                        LOGGER.error('Falied to serialize object to {}. Error: {}'.format(
-                            dst, e
-                        ))
+            with open(dst, 'w') as f:
+                try:
+                    yield Handler(metainfo, f, self.renderer)
+                except Exception as e:
+                    LOGGER.error('Falied to serialize object to {}. Error: {}'.format(
+                        dst, e
+                    ))
         except Exception as e:
             LOGGER.error("Falied to open {} for writing. Error: {}".format(
                 dst, e
             ))
 
-    def download_object(self, name):
-        target = os.path.join(self.destination, name)
-        try:
-            with open(target) as _in:
-                with mmap.mmap(_in.fileno(), 0, access=mmap.ACCESS_READ) as mapped:
-                    return self.renderer.load(mapped)
-        except Exception as e:
-            LOGGER.fatal("Unable to read object {}. Error: {}".format(
-                target, e
-            ))
-
 
 @click.command(name='fs')
-@click.option(
-    '--renderer',
-    help='Python library to serialize jsons',
-    default='simplejson'
-    )
 @click.option(
     '--file-path',
     help="Destination path to store static dump",
     required=True
     )
+@click.option(
+    '--renderer',
+    help='Python library to serialize jsons',
+    default='simplejson'
+    )
 @click.pass_context
-def fs(ctx):
+def fs(ctx, file_path, renderer):
     logger = ctx.obj['logger']
-    logger.info("Hello from logger")
+    storage = ctx.obj['storage']
+    count = ctx.obj['count']
+    logger.info("Start packing")
+
+    outlet = FSOutlet(file_path, renderer)
+
+    packer = OCDSPacker(
+        storage,
+        outlet,
+        pack_count=count
+        )
+    packer.packdb()
+
