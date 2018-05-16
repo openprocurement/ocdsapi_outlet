@@ -2,6 +2,11 @@ import logging
 import functools
 import operator
 import os.path
+from repoze.lru import lru_cache
+try:
+    import boto3
+except ImportError:
+    boto3 = None
 
 
 DEFATULT_PATHS = [
@@ -46,3 +51,11 @@ def prepare_package(date):
         },
         'lisence': ''
     }
+
+
+@lru_cache(maxsize=1)
+def connect_bucket(cfg):
+    return (
+        cfg['bucket'],
+        boto3.client('s3')
+        )

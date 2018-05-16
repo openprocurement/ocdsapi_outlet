@@ -1,12 +1,9 @@
 import logging
-from gevent.pool import Pool
+import gevent
 from .utils import prepare_package, find_package_date
 
 
 LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
-DEFAULTS = {
-    'pool_size': 25
-}
 
 
 class OCDSPacker:
@@ -25,6 +22,7 @@ class OCDSPacker:
             endkey=end_key,
             include_docs=True
         )
+
     def create_package(self, window):
         backend = self.backend
         docs = [
@@ -36,17 +34,15 @@ class OCDSPacker:
             handler.write_releases(docs)
 
     def packdb(self):
-        pool = Pool(DEFAULTS['pool_size'])
         windows = self.initialize_dump_window()
         LOGGER.info("Starting dump. Total {} pakcages".format(
             len(windows)
         ))
-        for window in windows:
-            pool.spawn(
-                self.create_package,
-                window
-            )
-        pool.join()
+        jobs = [
+            gevent.spawn(self.create_package, window)
+            for window in windows
+        ]
+        gevent.joinall(jobs)
 
     def initialize_dump_window(self):
         total_rows = self.storage.db.view(

@@ -2,8 +2,7 @@ import os
 import os.path
 import logging
 import click
-from contextlib import contextmanager
-from zope.dottedname.resolve import resolve
+from .base import BaseOutlet, BaseHandler
 from ..run import cli
 from ..dumptool import OCDSPacker
 
@@ -12,59 +11,32 @@ LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
 DEFAULT_RENDERER = 'json'
 
 
-class Handler:
+class FileHandler(BaseHandler):
 
-    def __init__(self, meta, handler, renderer):
-        self.meta = meta
-        self.handler = handler
-        self.renderer = renderer
+    def __init__(self, cfg, renderer, meta):
+        super().__init__(cfg, renderer, meta)
+
+        self.destination = cfg.get('file_path')
+        if not os.path.exists(self.destination):
+            os.makedirs(self.destination)
+        self.name = '{}.json'.format(self.meta['date'])
 
     def write_releases(self, releases):
         self.meta['releases'] = releases
         try:
-            self.renderer.dump(self.meta, self.handler)
+            with open(os.path.join(self.destination, self.name), 'w') as f:
+                self.renderer.dump(self.meta, f)
             LOGGER.info('Done package {}'.format(self.meta['date']))
         except Exception as e:
-            LOGGER.fatal("Error wrinting release. error: {}".format(e))
+            LOGGER.fatal("Error writing release. error: {}".format(e))
         finally:
-            del self.meta
+            del self.meta['releases']
 
 
-class FSOutlet:
+class FSOutlet(BaseOutlet):
 
-    def __init__(self, path, renderer=DEFAULT_RENDERER):
-        try:
-            self.renderer = resolve(renderer)
-            if not all((hasattr(self.renderer, r) for r in ('load', 'dump'))):
-                raise Exception("InvalidRenderer")
-        except (ImportError, Exception) as e:
-            LOGGER.warn("Invalid renderer {}. Reason {}. Going back to default.".format(
-                renderer,
-                e
-            ))
-            self.renderer = resolve(DEFAULT_RENDERER)
-
-        self.destination = path
-        if not os.path.exists(self.destination):
-            os.makedirs(self.destination)
-
-    @contextmanager
-    def start_package(self, metainfo):
-        id = metainfo['date']
-        LOGGER.info('Writing package {}'.format(metainfo.get('date')))
-        dst = '{}.json'.format(os.path.join(self.destination, id))
-        try:
-            with open(dst, 'w') as f:
-                try:
-                    yield Handler(metainfo, f, self.renderer)
-                except Exception as e:
-                    LOGGER.error('Falied to serialize object to {}. Error: {}'.format(
-                        dst, e
-                    ))
-        except Exception as e:
-            LOGGER.error("Falied to open {} for writing. Error: {}".format(
-                dst, e
-            ))
+    def __init__(self, cfg, renderer, with_zip):
+        super().__init__(FileHandler, cfg, renderer, with_zip)
 
 
 @click.command(name='fs')
@@ -78,19 +50,23 @@ class FSOutlet:
     help='Python library to serialize jsons',
     default='simplejson'
     )
+@click.option(
+    '--with-zip',
+    help="Flag to create zip archive with all releases",
+    default=False
+)
 @click.pass_context
-def fs(ctx, file_path, renderer):
+def fs(ctx, **kw):
     logger = ctx.obj['logger']
     storage = ctx.obj['storage']
     count = ctx.obj['count']
     logger.info("Start packing")
 
-    outlet = FSOutlet(file_path, renderer)
-
+    renderer = kw.pop('renderer')
+    with_zip = kw.pop('with_zip')
     packer = OCDSPacker(
         storage,
-        outlet,
+        FSOutlet(kw, renderer, with_zip),
         pack_count=count
         )
     packer.packdb()
-

@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 
+
 DESCRIPTION = """
 OCDS DB Dump tool
 """
@@ -11,6 +12,10 @@ INSTALL_REQUIRES = [
     'click',
     'ocdsapi',
     'zope.dottedname',
+    'requests',
+    'emails',
+    'repoze.lru',
+    'boto3'
 ]
 TEST_REQUIRES = INSTALL_REQUIRES + [
     'pytest',
@@ -19,14 +24,15 @@ TEST_REQUIRES = INSTALL_REQUIRES + [
 JOURNALD = INSTALL_REQUIRES + ['python-systemd']
 EXTRA = {
     "test": TEST_REQUIRES,
-    'journald': JOURNALD
+    'journald': JOURNALD,
 }
 ENTRY_POINTS = {
     'console_scripts': [
         'ocds-pack = ocdsapi_outlet.run:cli',
     ],
     'ocdsapi.outlets': [
-        'fs = ocdsapi_outlet.backends.fs:FSOutlet'
+        'fs = ocdsapi_outlet.backends.fs:FSOutlet',
+        's3 = ocdsapi_outlet.backends.s3:S3Outlet',
     ],
     'ocdsapi.commands': [
         'fs = ocdsapi_outlet.backends.fs:fs'
