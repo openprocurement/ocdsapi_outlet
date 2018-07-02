@@ -1,20 +1,23 @@
+""" loads all available backends """
+import click
 from pkg_resources import iter_entry_points
-from ..run import cli
 
 
-BACKENDS = {
-    ext.name: ext.load()
-    for ext in iter_entry_points('ocdsapi.outlets')
-}
+BACKENDS = {}
 
-for cmd in iter_entry_points('ocdsapi.commands'):
-    cli.add_command(cmd.load(), cmd.name)
+
+for plugin in iter_entry_points('ocdsapi.outlets'):
+    click.echo('Loading plugin: {}'.format(plugin.name))
+    plugin.load()()
+
 
 class ConfigurationError(Exception):
+    """ Error to identify backend misconfiguration """
     pass
 
 
 def backend(name):
+    """ Returns backend class by provided name"""
     if name in BACKENDS:
         return BACKENDS[name]
     raise ConfigurationError("Unsupported backend for file upload: {}".format(name))

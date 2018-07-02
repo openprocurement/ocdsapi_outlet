@@ -1,3 +1,4 @@
+""" setup.py """
 from setuptools import setup, find_packages
 
 
@@ -31,11 +32,8 @@ ENTRY_POINTS = {
         'ocds-pack = ocdsapi_outlet.run:cli',
     ],
     'ocdsapi.outlets': [
-        'fs = ocdsapi_outlet.backends.fs:FSOutlet',
-        's3 = ocdsapi_outlet.backends.s3:S3Outlet',
-    ],
-    'ocdsapi.commands': [
-        'fs = ocdsapi_outlet.backends.fs:fs'
+        'fs = ocdsapi_outlet.backends.fs:install',
+        's3 = ocdsapi_outlet.backends.s3:install',
     ]
 }
 
@@ -51,5 +49,4 @@ setup(name='ocdsapi_outlet',
       install_requires=INSTALL_REQUIRES,
       extras_require=EXTRA,
       tests_require=TEST_REQUIRES,
-      entry_points=ENTRY_POINTS
-      )
+      entry_points=ENTRY_POINTS)

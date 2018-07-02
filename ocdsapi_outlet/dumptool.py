@@ -1,21 +1,38 @@
-import logging
-import gevent
-from .utils import prepare_package, find_package_date
+"""
+dumptool.py
+
+Contains logic behind fetching docs from database
+"""
+from gevent.pool import Pool
+from .utils import find_package_date
 
 
-LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
+class OCDSPacker(object):
+    """
+    Main class
+    Args:
+        storage: releases storage from ocdsapi
+        backend: backend adapter for storing releases
+        package_capacity: number of releases within one package
+    """
 
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self.logger = cfg.logger
+        self.backend = cfg.backend(self.cfg)
+        self.total = 0
 
-class OCDSPacker:
-
-    def __init__(self, storage, backend, pack_count=2048):
-        self.storage = storage
-        self.pack_count = pack_count
-        self.backend = backend
-
-    def _fetch_docs(self, window):
+    def fetch_releases_from_db(self, window):
+        """
+        Fetch docs from database
+        Args:
+            window: startkey and endkey parameter to limit docs
+        Returns:
+            List of documents inside provided limit
+        """
         start_key, end_key = window
-        return self.storage.db.iterview(
+        storage = self.cfg.storage
+        return storage.db.iterview(
             'releases/date_index',
             1000,
             startkey=start_key,
@@ -24,43 +41,58 @@ class OCDSPacker:
         )
 
     def create_package(self, window):
+        """
+        Creates release package
+        """
+
         backend = self.backend
         docs = [
             row.doc
-            for row in self._fetch_docs(window)
+            for row in self.fetch_releases_from_db(window)
         ]
         package_date = find_package_date(docs)
-        with self.backend.start_package(prepare_package(package_date)) as handler:
-            handler.write_releases(docs)
+        self.logger.info("Starting package: {}".format(package_date))
+        handler = backend.handle_package(package_date)
+        handler.write_releases(docs)
+        self.total -= 1
+        self.logger.info("{} packages left".format(self.total))
 
-    def packdb(self):
-        windows = self.initialize_dump_window()
-        LOGGER.info("Starting dump. Total {} pakcages".format(
+    def run(self):
+        """
+        Main entry point. Runs dumper.
+        """
+        pool = Pool(50)
+        windows = self.prepare_dump_windows()
+        self.logger.info("Starting dump. Total {} packages".format(
             len(windows)
         ))
-        jobs = [
-            gevent.spawn(self.create_package, window)
-            for window in windows
-        ]
-        gevent.joinall(jobs)
+        for window in windows:
+            pool.spawn(self.create_package, window)
+        pool.join()
 
-    def initialize_dump_window(self):
-        total_rows = self.storage.db.view(
+    def prepare_dump_windows(self):
+        """
+        Generates list of startkey and endkey items.
+        Used to split database data into packages
+        """
+        storage = self.cfg.storage
+        count = self.cfg.package_capacity
+        total_rows = storage.db.view(
             'releases/date_index',
             limit=0
         ).total_rows
 
-        number_of_packages = total_rows // self.pack_count
+        number_of_packages = total_rows // count
 
         start_key = ["", ""]
         windows = []
         for _ in range(0, number_of_packages+1):
-            response = self.storage.db.view(
+            response = storage.db.view(
                 'releases/date_index',
                 startkey=start_key,
-                limit=self.pack_count+1,
+                limit=count+1,
             )
-            
+
             if response.rows:
                 window = (
                     response.rows[0].key,
@@ -71,6 +103,5 @@ class OCDSPacker:
         windows.append(
             (start_key, ['9999-00-00T00:00:00.000000+03:00', 'x'*32]),
         )
+        self.total = number_of_packages
         return windows
-
-

@@ -1,53 +1,58 @@
-import os.path
-import logging
+"""
+base.py
+Contains base classes for backend adapters
+"""
+
 from contextlib import contextmanager
 from zope.dottedname.resolve import resolve
+from ..utils import prepare_package
 
 from .zip import ZipHandler
 
 
-LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
-DEFAULT_RENDERER = 'json'
-
-
 class BaseHandler:
+    """
+    Base class for all handlers
+    """
 
-    def __init__(self, cfg, renderer, meta):
+    def __init__(self, cfg, base_package):
         self.cfg = cfg
-        self.renderer = renderer
-        self.meta = meta
+        self.base_package = base_package
+        self.logger = cfg.logger
+        self.renderer = cfg.renderer
+
+    def write_releases(self, releases):
+        self.base_package['releases'] = releases
+        return self.base_package
+
+    def write_manifest(self):
+        raise NotImplementedError
 
 
-class BaseOutlet:
-
-    def __init__(
-            self,
-            handler,
-            cfg,
-            renderer=DEFAULT_RENDERER,
-            with_zip=False
-            ):
-        try:
-            self.renderer = resolve(renderer)
-            if not all((hasattr(self.renderer, r) for r in ('load', 'dump'))):
-                raise Exception("InvalidRenderer")
-        except (ImportError, Exception) as e:
-            LOGGER.warn(
-                "Invalid renderer {}. Reason {}. "
-                "Going back to default.".format(
-                    renderer,
-                    e
-            ))
-            self.renderer = resolve(DEFAULT_RENDERER)
+class BaseOutlet(object):
+    """
+    Base class for all backends
+    """
+    def __init__(self, handler, cfg):
         self.cfg = cfg
+        self.logger = cfg.logger
+        self.renderer = self.cfg.renderer
         self.handler = handler
 
-    @contextmanager
-    def start_package(self, metainfo):
-        LOGGER.info('Writing package {}'.format(metainfo.get('date')))
+    def write_manifest(self):
+        self.handler(self.cfg).write_manifest()
+
+    def handle_package(self, package_date):
+        """
+        Start dumping one package
+        """
+        self.logger.info('Writing package {}'.format(package_date))
         try:
-            yield self.handler(self.cfg, self.renderer, metainfo)
+            return self.handler(
+                self.cfg,
+                prepare_package(package_date, self.cfg.metainfo)
+            )
         except Exception as e:
-            LOGGER.error('Falied to serialize object. Error: {}'.format(
+            self.logger.error('Falied to serialize object. Error: {}'.format(
                 e
             ))

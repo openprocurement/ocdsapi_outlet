@@ -1,42 +1,59 @@
+""" fs.py - file system backend """
 import os
 import os.path
-import logging
 import click
+import pathlib
 from .base import BaseOutlet, BaseHandler
 from ..run import cli
 from ..dumptool import OCDSPacker
-
-
-LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
-DEFAULT_RENDERER = 'json'
+from . import BACKENDS
+from ..config import make_config
 
 
 class FileHandler(BaseHandler):
+    """ 
+    File system handler.
+    Dumps one package to filesystem directory
+    """
+    def __init__(self, cfg, base_package={}):
+        super().__init__(cfg, base_package)
 
-    def __init__(self, cfg, renderer, meta):
-        super().__init__(cfg, renderer, meta)
-
-        self.destination = cfg.get('file_path')
+        self.destination = os.path.join(cfg.file_path, cfg.key_prefix)
+        if not self.destination:
+            raise Exception("Invalid destination path")
         if not os.path.exists(self.destination):
             os.makedirs(self.destination)
-        self.name = '{}.json'.format(self.meta['date'])
+        if base_package:
+            self.name = '{}.json'.format(
+                self.base_package['publishedDate']
+            )
 
     def write_releases(self, releases):
-        self.meta['releases'] = releases
+        """ Write release package to file """
+        self.base_package['releases'] = releases
         try:
-            with open(os.path.join(self.destination, self.name), 'w') as f:
-                self.renderer.dump(self.meta, f)
-            LOGGER.info('Done package {}'.format(self.meta['date']))
+            name = os.path.join(self.destination, self.name)
+
+            with open(name, 'w') as f:
+                self.renderer.dump(self.base_package, f)
+            self.logger.info('Done package {}'.format(self.base_package['publishedDate']))
+            if self.cfg.manifest:
+                self.cfg.manifest.releases.append(name)
         except Exception as e:
-            LOGGER.fatal("Error writing release. error: {}".format(e))
+            self.logger.fatal("Error writing release. error: {}".format(e))
         finally:
-            del self.meta['releases']
+            del self.base_package['releases']
+
+    def write_manifest(self):
+        path = pathlib.Path(self.destination).parent
+        with open(path, 'w+') as _out:
+            self.renderer.dump(self.cfg.manifest.as_dict(), _out)
 
 
 class FSOutlet(BaseOutlet):
-
-    def __init__(self, cfg, renderer, with_zip):
-        super().__init__(FileHandler, cfg, renderer, with_zip)
+    """ Main file system backend class"""
+    def __init__(self, cfg):
+        super(FSOutlet, self).__init__(FileHandler, cfg)
 
 
 @click.command(name='fs')
@@ -45,28 +62,15 @@ class FSOutlet(BaseOutlet):
     help="Destination path to store static dump",
     required=True
     )
-@click.option(
-    '--renderer',
-    help='Python library to serialize jsons',
-    default='simplejson'
-    )
-@click.option(
-    '--with-zip',
-    help="Flag to create zip archive with all releases",
-    default=False
-)
 @click.pass_context
-def fs(ctx, **kw):
-    logger = ctx.obj['logger']
-    storage = ctx.obj['storage']
-    count = ctx.obj['count']
-    logger.info("Start packing")
+def fs(ctx, file_path):
+    ctx.obj['backend'] = FSOutlet
+    cfg = make_config(ctx)
+    cfg.file_path = file_path
+    packer = OCDSPacker(cfg)
+    packer.run()
 
-    renderer = kw.pop('renderer')
-    with_zip = kw.pop('with_zip')
-    packer = OCDSPacker(
-        storage,
-        FSOutlet(kw, renderer, with_zip),
-        pack_count=count
-        )
-    packer.packdb()
+
+def install():
+    cli.add_command(fs, 'fs')
+    BACKENDS['fs'] = FSOutlet
