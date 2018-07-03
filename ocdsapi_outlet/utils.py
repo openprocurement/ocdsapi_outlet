@@ -44,7 +44,6 @@ def prepare_package(date, metainfo=None):
             'scheme': '',
             'uri': ''
         },
-        'lisence': ''
     }
     if metainfo:
         base.update(metainfo)
@@ -55,6 +54,6 @@ def prepare_package(date, metainfo=None):
 def connect_bucket(cfg):
     """ TODO: do we really need this? """
     return (
-        cfg['bucket'],
+        cfg.bucket,
         boto3.client('s3')
         )

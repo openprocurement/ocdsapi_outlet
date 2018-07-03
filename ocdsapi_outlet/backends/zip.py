@@ -1,32 +1,26 @@
+""" """
 import zipfile
-import logging
 import os.path
-
-
-LOGGER = logging.getLogger('ocdsapi.outlet.dumptool')
 
 
 class ZipHandler:
 
-    def __init__(self, path, zip_name, renderer):
-        self.path = os.path.join(path, zip_name)
-        self.renderer = renderer
+    def __init__(self, cfg, path):
+        self.cfg = cfg
+        self.logger = cfg.logger
+        self.path = os.path.join(path, 'releases.zip')
 
-    def write_package(self, package):
-        date = package['date']
-        if not isinstance(package, (str, bytes)):
-            package = self.renderer.dumps(package)
-
+    def write_package(self, package, name):
         with zipfile.ZipFile(
-                self.path,
-                'a',
-                zipfile.ZIP_DEFLATED,
-                allowZip64=True
-                ) as zf:
+            self.path,
+            'a',
+            zipfile.ZIP_DEFLATED,
+            allowZip64=True
+        ) as zip_file:
             try:
-                zf.writestr(package)
-                LOGGER.info('Chunk {} written to archive {}'.format(
-                    date, self.path
+                zip_file.writestr(name, package)
+                self.logger.info('Chunk {} written to archive {}'.format(
+                    name, self.path
                     ))
-            except Exception as e:
-                LOGGER.fatal("Falied to write {}".format(date))
+            except Exception as error:
+                self.logger.fatal("Falied to write {}. Reason: {}".format(name, error))

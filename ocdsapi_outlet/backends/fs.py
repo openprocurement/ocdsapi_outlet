@@ -1,12 +1,13 @@
 """ fs.py - file system backend """
 import os
 import os.path
-import click
 import pathlib
+import click
+from . import BACKENDS
 from .base import BaseOutlet, BaseHandler
+from .zip import ZipHandler
 from ..run import cli
 from ..dumptool import OCDSPacker
-from . import BACKENDS
 from ..config import make_config
 
 
@@ -15,18 +16,18 @@ class FileHandler(BaseHandler):
     File system handler.
     Dumps one package to filesystem directory
     """
-    def __init__(self, cfg, base_package={}):
-        super().__init__(cfg, base_package)
+    def __init__(self, cfg, base_package={}, name=""):
+        super().__init__(cfg, base_package, name=name)
 
         self.destination = os.path.join(cfg.file_path, cfg.key_prefix)
         if not self.destination:
             raise Exception("Invalid destination path")
         if not os.path.exists(self.destination):
             os.makedirs(self.destination)
-        if base_package:
-            self.name = '{}.json'.format(
-                self.base_package['publishedDate']
-            )
+        self.name = name
+        if self.cfg.with_zip:
+            self.zip_handler = ZipHandler(cfg, cfg.file_path)
+            self.cfg.manifest.archive = self.zip_handler.path
 
     def write_releases(self, releases):
         """ Write release package to file """
@@ -38,11 +39,15 @@ class FileHandler(BaseHandler):
                 self.renderer.dump(self.base_package, f)
             self.logger.info('Done package {}'.format(self.base_package['publishedDate']))
             if self.cfg.manifest:
+                self.logger.info("Added link {} to manifest".format(name))
                 self.cfg.manifest.releases.append(name)
         except Exception as e:
             self.logger.fatal("Error writing release. error: {}".format(e))
+        else:
+            if self.cfg.with_zip:
+                self.zip_handler.write_package(self.base_package, self.name)
         finally:
-            del self.base_package['releases']
+            del self.base_package
 
     def write_manifest(self):
         path = pathlib.Path(self.destination).parent

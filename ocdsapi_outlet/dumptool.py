@@ -40,19 +40,28 @@ class OCDSPacker(object):
             include_docs=True
         )
 
-    def create_package(self, window):
+    def prepare_doc(self, doc):
+        doc.pop("$schema", None)
+        doc.pop("_rev", None)
+        id = doc.pop("_id", "")
+        if id:
+            if 'id' not in doc:
+                doc['id'] = id
+        return doc
+
+    def create_package(self, window, index):
         """
         Creates release package
         """
 
         backend = self.backend
         docs = [
-            row.doc
+            self.prepare_doc(row.doc)
             for row in self.fetch_releases_from_db(window)
         ]
         package_date = find_package_date(docs)
         self.logger.info("Starting package: {}".format(package_date))
-        handler = backend.handle_package(package_date)
+        handler = backend.handle_package(package_date, index)
         handler.write_releases(docs)
         self.total -= 1
         self.logger.info("{} packages left".format(self.total))
@@ -61,14 +70,16 @@ class OCDSPacker(object):
         """
         Main entry point. Runs dumper.
         """
-        pool = Pool(50)
+        pool = Pool(10)
         windows = self.prepare_dump_windows()
         self.logger.info("Starting dump. Total {} packages".format(
             len(windows)
         ))
-        for window in windows:
-            pool.spawn(self.create_package, window)
+        for index, window in enumerate(windows):
+            pool.spawn(self.create_package, window, index)
         pool.join()
+        if self.cfg.manifest:
+            self.backend.write_manifest()
 
     def prepare_dump_windows(self):
         """

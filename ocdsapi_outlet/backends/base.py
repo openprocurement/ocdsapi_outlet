@@ -2,24 +2,19 @@
 base.py
 Contains base classes for backend adapters
 """
-
-from contextlib import contextmanager
-from zope.dottedname.resolve import resolve
 from ..utils import prepare_package
-
-from .zip import ZipHandler
 
 
 class BaseHandler:
     """
     Base class for all handlers
     """
-
-    def __init__(self, cfg, base_package):
+    def __init__(self, cfg, base_package, name):
         self.cfg = cfg
         self.base_package = base_package
         self.logger = cfg.logger
         self.renderer = cfg.renderer
+        self.name = name
 
     def write_releases(self, releases):
         self.base_package['releases'] = releases
@@ -42,7 +37,10 @@ class BaseOutlet(object):
     def write_manifest(self):
         self.handler(self.cfg).write_manifest()
 
-    def handle_package(self, package_date):
+    def prepare_name(self, index):
+        return "package-{0:07d}.json".format(index)
+
+    def handle_package(self, package_date, index):
         """
         Start dumping one package
         """
@@ -50,7 +48,8 @@ class BaseOutlet(object):
         try:
             return self.handler(
                 self.cfg,
-                prepare_package(package_date, self.cfg.metainfo)
+                base_package=prepare_package(package_date, self.cfg.metainfo),
+                name=self.prepare_name(index)
             )
         except Exception as e:
             self.logger.error('Falied to serialize object. Error: {}'.format(
