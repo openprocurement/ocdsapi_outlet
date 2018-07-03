@@ -5,7 +5,7 @@ Contains base classes for backend adapters
 from ..utils import prepare_package
 
 
-class BaseHandler:
+class BaseHandler(object):
     """
     Base class for all handlers
     """

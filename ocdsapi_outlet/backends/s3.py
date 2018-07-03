@@ -27,13 +27,15 @@ class S3BucketHandler(BaseHandler):
         self.base_package['releases'] = releases
         prefix = self.cfg.key_prefix
         key = os.path.join(prefix, self.name)
-        data = self.renderer.dumps(self.base_package)
+
         link = "https://s3-{0}.amazonaws.com/{1}/{2}".format(
             self.bucket_location['LocationConstraint'],
             self.cfg.bucket,
             key
         )
         self.base_package['uri'] = link
+
+        data = self.renderer.dumps(self.base_package)
         try:
             self.client.put_object(
                 Body=data,
