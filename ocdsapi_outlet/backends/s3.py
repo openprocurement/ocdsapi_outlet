@@ -85,6 +85,7 @@ class S3BucketHandler(BaseHandler):
         try:
             link = self.put_zip()
             if link:
+                self.logger.info("Link to archive: {}".format(link))
                 self.cfg.manifest.archive = link
             self.cfg.manifest.releases = sorted(self.cfg.manifest.releases)
             self.client.put_object(
@@ -93,7 +94,7 @@ class S3BucketHandler(BaseHandler):
                 Key=key,
                 ContentType="application/json",
             )
-
+            self.logger.info("Written manifest.json")
         except self.client.exceptions.ClientError as e:
             self.logger.fatal("Failed to upload object to s3. Error: {}".format(
                 e
