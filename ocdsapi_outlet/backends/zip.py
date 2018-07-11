@@ -1,4 +1,5 @@
 """ """
+import json
 import zipfile
 import os.path
 
@@ -18,6 +19,8 @@ class ZipHandler:
             allowZip64=True
         ) as zip_file:
             try:
+                if not isinstance(package, str):
+                    package = json.dumps(package)
                 zip_file.writestr(name, package)
                 self.logger.info('Chunk {} written to archive {}'.format(
                     name, self.path
