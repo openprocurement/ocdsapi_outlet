@@ -103,11 +103,14 @@ class OCDSPacker(object):
                 startkey=start_key,
                 limit=count+1,
             )
-
+            if len(response.rows) >= 2:
+                next_key = response.rows[-2].key
+            else:
+                next_key = response.rows[-1].key
             if response.rows:
                 window = (
                     response.rows[0].key,
-                    response.rows[-2].key
+                    next_key
                 )
                 windows.append(window)
                 start_key = response.rows[-1].key
