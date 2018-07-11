@@ -7,7 +7,6 @@ BACKENDS = {}
 
 
 for plugin in iter_entry_points('ocdsapi.outlets'):
-    click.echo('Loading plugin: {}'.format(plugin.name))
     plugin.load()()
 
 
