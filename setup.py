@@ -16,7 +16,8 @@ INSTALL_REQUIRES = [
     'requests',
     'emails',
     'repoze.lru',
-    'boto3'
+    'boto3',
+    'waitress'
 ]
 TEST_REQUIRES = INSTALL_REQUIRES + [
     'pytest',
@@ -30,6 +31,7 @@ EXTRA = {
 ENTRY_POINTS = {
     'console_scripts': [
         'ocds-pack = ocdsapi_outlet.run:cli',
+        'ocds-server = ocdsapi_outlet.api:run',
     ],
     'ocdsapi.outlets': [
         'fs = ocdsapi_outlet.backends.fs:install',

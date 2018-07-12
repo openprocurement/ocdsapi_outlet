@@ -57,3 +57,27 @@ def connect_bucket(cfg):
         cfg.bucket,
         boto3.client('s3')
         )
+
+
+def prepare_pack_command(cfg):
+    base_bin = cfg.get('bin_path', 'ocds-pack')
+    base_args = [
+        base_bin
+    ]
+    db_args = [
+        item
+        for arg, value in cfg.get('db').items()
+        for item in '--{} {}'.format(arg.replace('_', '-'), value).split()
+
+    ]
+
+    backend = list(cfg.get('backend', {'fs': ''}).keys())[0]
+    backend_args = [backend]
+    backend_args.extend([
+        item
+        for arg, value in cfg['backend'][backend].items()
+        for item in '--{} {}'.format(arg.replace('_', '-'), value).split()
+    ])
+    for args in db_args, backend_args:
+        base_args.extend(args)
+    return base_args
