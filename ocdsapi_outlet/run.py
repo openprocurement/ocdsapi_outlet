@@ -40,6 +40,7 @@ DEFAULT_RENDERER = 'json'
 @click.option(
     '--clean-up',
     help='Clean up raw json after creating zip file',
+    type=bool,
     default=False
 )
 @click.option('--log-level', help="Logging level", default='INFO')

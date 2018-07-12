@@ -11,10 +11,13 @@ dump:
   # bin_path: bin/ocds-pack
   with_zip: true
   count: 2048
+  metainfo_file: meta.yml
+  clean_up: True
 
 backend:
   fs:
     file_path: var/releases
+    base_host: 'localhost'
 
 
 version: 1

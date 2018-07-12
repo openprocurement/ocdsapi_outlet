@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.gevent import GeventScheduler
 from apscheduler.executors.gevent import GeventExecutor
 from apscheduler.triggers.date import DateTrigger
+from gevent import spawn
 from gevent.subprocess import Popen, PIPE
 from .utils import prepare_pack_command
 
@@ -52,12 +53,27 @@ class Jobs(Resource):
         })
 
     def spawn(self):
+        """
+        Run dump script as separate process
+        """
+        def read_stream(stream):
+            try:
+                while not stream.closed:
+                    line = stream.readline()
+                    if not line:
+                        break
+                    line = line.rstrip().decode('utf-8')
+                    LOGGER.info(line.split(' - ')[-1])
+            except:
+                pass
         args = prepare_pack_command(APP.config)
         LOGGER.warn("Going to start dump with args {}".format(args))
         popen = Popen(args, stdout=PIPE, stderr=PIPE)
-        output, error = popen.communicate()
-        LOGGER.fatal("stdout {} stderr {}".format(output, error))
-        import pdb; pdb.set_trace()
+        spawn(read_stream, popen.stdout)
+        spawn(read_stream, popen.stderr)
+        popen.wait()
+        return_code = popen.returncode
+        LOGGER.info("Dumper ended work with code {}".format(return_code))
 
     def post(self):
         """ Start dumping """

@@ -62,8 +62,15 @@ def connect_bucket(cfg):
 def prepare_pack_command(cfg):
     base_bin = cfg.get('bin_path', 'ocds-pack')
     base_args = [
-        base_bin
+        base_bin,
+        '--package-meta',
+        cfg.get('dump', {}).get('metainfo_file', 'meta.yml')
     ]
+    if cfg.get('dump', {}).get('clean_up'):
+        base_args.extend([
+            '--clean-up',
+            str(cfg['dump']['clean_up'])
+        ])
     db_args = [
         item
         for arg, value in cfg.get('db').items()
