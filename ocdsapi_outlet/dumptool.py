@@ -3,6 +3,7 @@ dumptool.py
 
 Contains logic behind fetching docs from database
 """
+import shutil
 from gevent.pool import Pool
 from .utils import find_package_date
 
@@ -80,6 +81,9 @@ class OCDSPacker(object):
         pool.join()
         if self.cfg.manifest:
             self.backend.write_manifest()
+        if self.cfg.clean_up:
+            self.logger.warn("Firing up cleaner")
+            shutil.rmtree(self.backend.handler(self.cfg).destination)
 
     def prepare_dump_windows(self):
         """

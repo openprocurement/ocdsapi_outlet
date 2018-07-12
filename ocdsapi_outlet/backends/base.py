@@ -39,7 +39,6 @@ class BaseOutlet(object):
 
     def prepare_name(self, index):
         return "package-{0:07d}.json".format(index)
-
     def handle_package(self, package_date, index):
         """
         Start dumping one package

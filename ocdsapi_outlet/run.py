@@ -26,13 +26,22 @@ DEFAULT_RENDERER = 'json'
 @click.option('--db-name', help='Database name', required=True)
 @click.option('--package-meta', help="Path to releases metainfo", required=True)
 @click.option('--renderer', help="JSON renderer to use", required=False, default=DEFAULT_RENDERER)
-@click.option('--with-zip', help="Create zip archive with all packages", required=False, default=True)
+@click.option(
+    '--with-zip',
+    help="Create zip archive with all packages",
+    required=False, default=True
+)
 @click.option(
     '--count',
     help='Count of releases in package',
     type=int,
     default=2048
-    )
+)
+@click.option(
+    '--clean-up',
+    help='Clean up raw json after creating zip file',
+    default=False
+)
 @click.option('--log-level', help="Logging level", default='INFO')
 @click.option(
     '--log-class',
@@ -53,6 +62,7 @@ def cli(ctx,
         renderer,
         with_zip,
         count,
+        clean_up,
         log_level,
         log_class,
         log_format,
@@ -94,6 +104,7 @@ def cli(ctx,
     ctx.obj['with_zip'] = with_zip
     ctx.obj['key_prefix'] = "merged-{}".format(datetime.now().strftime("%Y-%m-%d"))
     ctx.obj['manifest'] = Manifest()
+    ctx.obj['clean_up'] = clean_up
     if package_meta.endswith('yaml') or package_meta.endswith('yml'):
         load = yaml.load
     elif package_meta.endswith('json'):

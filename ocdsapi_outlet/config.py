@@ -10,7 +10,7 @@ class Configuration(object):
                 'with_zip', 'storage',
                 'metainfo', 'logger', 'manifest',
                 'package_capacity', 'renderer',
-                'key_prefix', 'backend'):
+                'key_prefix', 'backend', 'clean_up'):
             setattr(self, key, obj.get(key))
 
 
