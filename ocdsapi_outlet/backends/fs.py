@@ -25,6 +25,10 @@ class FileHandler(BaseHandler):
         if not os.path.exists(self.destination):
             os.makedirs(self.destination)
         self.name = name
+        self.base_host = cfg.base_host
+        if not self.base_host.startswith('http'):
+            self.base_host = "http://{}".format(self.base_host)
+        self.base_package['uri'] = os.path.join(self.base_host, self.name)
         if self.cfg.with_zip:
             self.zip_handler = ZipHandler(cfg, cfg.file_path)
             self.cfg.manifest.archive = self.zip_handler.path
@@ -51,7 +55,7 @@ class FileHandler(BaseHandler):
 
     def write_manifest(self):
         path = pathlib.Path(self.destination).parent
-        with open(path, 'w+') as _out:
+        with open(os.path.join(path, 'manifest.json'), 'w+') as _out:
             self.renderer.dump(self.cfg.manifest.as_dict(), _out)
 
 
@@ -67,11 +71,17 @@ class FSOutlet(BaseOutlet):
     help="Destination path to store static dump",
     required=True
     )
+@click.option(
+    '--base-host',
+    help='Base hostname from which files are served',
+    required=True
+)
 @click.pass_context
-def fs(ctx, file_path):
+def fs(ctx, file_path, base_host):
     ctx.obj['backend'] = FSOutlet
     cfg = make_config(ctx)
     cfg.file_path = file_path
+    cfg.base_host = base_host
     packer = OCDSPacker(cfg)
     packer.run()
 
