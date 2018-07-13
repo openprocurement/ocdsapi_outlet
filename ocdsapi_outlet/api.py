@@ -102,10 +102,13 @@ class StaticContent(Resource):
         """
         Download all tender as zip file
         """
-        root_dir = os.path.dirname(os.getcwd())
         path = APP.config['backend']['fs']['file_path']
+        if not path.startswith('/'):
+            root_dir = os.path.dirname(os.getcwd())
+            path = os.path.join(root_dir, path)
+
         return send_from_directory(
-            os.path.join(root_dir, path),
+            path,
             'releases.zip',
             mimetype='application/zip',
             as_attachment=True,
