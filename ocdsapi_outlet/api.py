@@ -106,7 +106,7 @@ class StaticContent(Resource):
         if not path.startswith('/'):
             root_dir = os.path.dirname(os.getcwd())
             path = os.path.join(root_dir, path)
-
+        LOGGER.info('Sending file {}'.format(os.path.join(path, 'releases.zip')))
         return send_from_directory(
             path,
             'releases.zip',

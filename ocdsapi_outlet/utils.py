@@ -66,16 +66,17 @@ def prepare_pack_command(cfg):
         '--package-meta',
         cfg.get('dump', {}).get('metainfo_file', 'meta.yml')
     ]
-    if cfg.get('dump', {}).get('clean_up'):
-        base_args.extend([
-            '--clean-up',
-            str(cfg['dump']['clean_up'])
-        ])
+    for key in ('clean_up', 'with_zip', 'count'):
+        if cfg.get('dump', {}).get(key):
+            base_args.extend([
+                '--{}'.format(key.replace('_', '-')),
+                str(cfg['dump'][key])
+            ])
+
     db_args = [
         item
         for arg, value in cfg.get('db').items()
         for item in '--{} {}'.format(arg.replace('_', '-'), value).split()
-
     ]
 
     backend = list(cfg.get('backend', {'fs': ''}).keys())[0]
