@@ -121,5 +121,8 @@ class OCDSPacker(object):
         windows.append(
             (start_key, ['9999-00-00T00:00:00.000000+03:00', 'x'*32]),
         )
-        self.total = number_of_packages
+        self.total = number_of_packages + 1
         return windows
+
+
+
