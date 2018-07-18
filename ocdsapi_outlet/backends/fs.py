@@ -9,6 +9,7 @@ from .zip import ZipHandler
 from ..run import cli
 from ..dumptool import OCDSPacker
 from ..config import make_config
+from .. import constants as C
 
 
 class FileHandler(BaseHandler):
@@ -82,7 +83,7 @@ def fs(ctx, file_path, base_host):
     cfg = make_config(ctx)
     cfg.file_path = file_path
     if cfg.with_zip:
-        zip_file = os.path.join(cfg.file_path, 'releases.zip')
+        zip_file = os.path.join(cfg.file_path, C.ZIP_NAME)
         if os.path.exists(zip_file):
             cfg.logger.warn("Crearing previous archive")
             os.remove(zip_file)

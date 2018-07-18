@@ -2,6 +2,7 @@
 import json
 import zipfile
 import os.path
+from .. import constants as C
 
 
 class ZipHandler:
@@ -9,7 +10,7 @@ class ZipHandler:
     def __init__(self, cfg, path):
         self.cfg = cfg
         self.logger = cfg.logger
-        self.path = os.path.join(path, 'releases.zip')
+        self.path = os.path.join(path, C.ZIP_NAME)
 
     def write_package(self, package, name):
         with zipfile.ZipFile(

@@ -9,6 +9,7 @@ from ..run import cli
 from ..dumptool import OCDSPacker
 from ..utils import connect_bucket
 from ..config import make_config
+from .. import constants as C
 
 
 class S3BucketHandler(BaseHandler):
@@ -60,7 +61,7 @@ class S3BucketHandler(BaseHandler):
 
     def put_zip(self):
         """ Upload zip archive to s3 bucket """
-        key = os.path.join(self.cfg.key_prefix, 'releases.zip')
+        key = os.path.join(self.cfg.key_prefix, C.ZIP_NAME)
         try:
             self.logger.info("Started uploading archive")
             self.client.upload_file(

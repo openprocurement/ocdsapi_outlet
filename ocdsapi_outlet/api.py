@@ -20,6 +20,7 @@ from apscheduler.triggers.date import DateTrigger
 from gevent import spawn
 from gevent.subprocess import Popen, PIPE
 from .utils import prepare_pack_command
+from . import constants as C
 
 
 LOGGER = logging.getLogger('ocdsapi_dumptool')
@@ -106,13 +107,13 @@ class StaticContent(Resource):
         if not path.startswith('/'):
             root_dir = os.path.dirname(os.getcwd())
             path = os.path.join(root_dir, path)
-        LOGGER.info('Sending file {}'.format(os.path.join(path, 'releases.zip')))
+        LOGGER.info('Sending file {}'.format(os.path.join(path, C.ZIP_NAME)))
         return send_from_directory(
             path,
-            'releases.zip',
+            C.ZIP_NAME,
             mimetype='application/zip',
             as_attachment=True,
-            attachment_filename='releases.zip'
+            attachment_filename=C.ZIP_NAME
         )
 
 
@@ -128,7 +129,7 @@ def main(cfg):
     # serving public files from s3 makes no sense
     API.add_resource(Jobs, '/jobs', endpoint='jobs')
     API.add_resource(Health, '/health', endpoint='health')
-    API.add_resource(StaticContent, '/json/releases', endpoint='json')
+    API.add_resource(StaticContent, "/{}".format(C.ZIP_NAME), endpoint='Json')
     SCHEDULER.start()
     return serve(APP, **server_cfg)
 
