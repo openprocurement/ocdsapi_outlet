@@ -17,9 +17,9 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.gevent import GeventScheduler
 from apscheduler.executors.gevent import GeventExecutor
 from apscheduler.triggers.date import DateTrigger
+from apscheduler.triggers.cron import CronTrigger
 from gevent import spawn
-from gevent.subprocess import Popen, PIPE
-from .utils import prepare_pack_command
+from .utils import dump
 from . import constants as C
 
 
@@ -53,35 +53,13 @@ class Jobs(Resource):
             "jobs": jobs
         })
 
-    def spawn(self):
-        """
-        Run dump script as separate process
-        """
-        def read_stream(stream):
-            try:
-                while not stream.closed:
-                    line = stream.readline()
-                    if not line:
-                        break
-                    line = line.rstrip().decode('utf-8')
-                    LOGGER.info(line.split(' - ')[-1])
-            except:
-                pass
-        args = prepare_pack_command(APP.config)
-        LOGGER.warn("Going to start dump with args {}".format(args))
-        popen = Popen(args, stdout=PIPE, stderr=PIPE)
-        spawn(read_stream, popen.stdout)
-        spawn(read_stream, popen.stderr)
-        popen.wait()
-        return_code = popen.returncode
-        LOGGER.info("Dumper ended work with code {}".format(return_code))
-
     def post(self):
         """ Start dumping """
         try:
             run_at = datetime.now()  + timedelta(seconds=10)
             SCHEDULER.add_job(
-                func=self.spawn,
+                func=dump,
+                args=(APP, LOGGER),
                 trigger=DateTrigger(run_date=run_at)
             )
             return jsonify({
@@ -96,6 +74,7 @@ class Jobs(Resource):
                 "reason": str(e)
 
             })
+
 
 class StaticContent(Resource):
 
@@ -125,12 +104,20 @@ def main(cfg):
     for section in ('db', 'dump', 'backend'):
         APP.config[section] = config.get(section)
     dictConfig(config)
+    SCHEDULER.start()
+
+    if 'cron' in APP.config['dump']:
+        SCHEDULER.add_job(
+            func=dump,
+            args=(APP, LOGGER),
+            trigger=CronTrigger.from_crontab(APP.config['dump']['cron']),
+            id="cron_dumper"
+        )
     # For now serving is available only for fs backand due to
     # serving public files from s3 makes no sense
     API.add_resource(Jobs, '/jobs', endpoint='jobs')
     API.add_resource(Health, '/health', endpoint='health')
     API.add_resource(StaticContent, "/{}".format(C.ZIP_NAME), endpoint='Json')
-    SCHEDULER.start()
     return serve(APP, **server_cfg)
 
 

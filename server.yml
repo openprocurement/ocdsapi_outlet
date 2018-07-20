@@ -13,6 +13,7 @@ dump:
   count: 2048
   metainfo_file: meta.yml
   clean_up: True
+  cron: "* * * * *"
 
 backend:
   fs:

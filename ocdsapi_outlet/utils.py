@@ -4,10 +4,36 @@ import logging
 import functools
 import operator
 from repoze.lru import lru_cache
+from gevent import spawn
+from gevent.subprocess import Popen, PIPE
 try:
     import boto3
 except ImportError:
     boto3 = None
+
+
+def dump(app, logger):
+    """
+    Run dump script as separate process
+    """
+    def read_stream(stream):
+        try:
+            while not stream.closed:
+                line = stream.readline()
+                if not line:
+                    break
+                line = line.rstrip().decode('utf-8')
+                logger.info(line.split(' - ')[-1])
+        except:
+            pass
+    args = prepare_pack_command(app.config)
+    logger.warn("Going to start dump with args {}".format(args))
+    popen = Popen(args, stdout=PIPE, stderr=PIPE)
+    spawn(read_stream, popen.stdout)
+    spawn(read_stream, popen.stderr)
+    popen.wait()
+    return_code = popen.returncode
+    logger.info("Dumper ended work with code {}".format(return_code))
 
 
 def setup_logger(

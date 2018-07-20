@@ -17,7 +17,8 @@ INSTALL_REQUIRES = [
     'emails',
     'repoze.lru',
     'boto3',
-    'waitress'
+    'waitress',
+    'prettytable'
 ]
 TEST_REQUIRES = INSTALL_REQUIRES + [
     'pytest',

@@ -25,7 +25,3 @@ class Manifest(object):
     def as_str(self):
         """ Return metainfo as raw json string """
         return json.dumps(self.as_dict())
-
-    def as_html(self):
-        """ TODO: """
-        pass
