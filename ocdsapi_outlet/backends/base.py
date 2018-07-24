@@ -39,16 +39,18 @@ class BaseOutlet(object):
 
     def prepare_name(self, index):
         return "package-{0:07d}.json".format(index)
+
     def handle_package(self, package_date, index):
         """
         Start dumping one package
         """
-        self.logger.info('Writing package {}'.format(package_date))
+        name = self.prepare_name(index)
+        self.logger.info('Writing package {}'.format(name))
         try:
             return self.handler(
                 self.cfg,
                 base_package=prepare_package(package_date, self.cfg.metainfo),
-                name=self.prepare_name(index)
+                name=name
             )
         except Exception as e:
             self.logger.error('Falied to serialize object. Error: {}'.format(

@@ -3,6 +3,7 @@ dumptool.py
 
 Contains logic behind fetching docs from database
 """
+import math
 import shutil
 from gevent.pool import Pool
 from .utils import find_package_date
@@ -61,8 +62,8 @@ class OCDSPacker(object):
             for row in self.fetch_releases_from_db(window)
         ]
         package_date = find_package_date(docs)
-        self.logger.info("Starting package: {}".format(package_date))
         handler = backend.handle_package(package_date, index)
+        self.logger.info("Starting package: {}".format(handler.name))
         handler.write_releases(docs)
         self.total -= 1
         self.logger.info("{} packages left".format(self.total))
@@ -97,32 +98,28 @@ class OCDSPacker(object):
             limit=0
         ).total_rows
 
-        number_of_packages = total_rows // count
+        number_of_packages = math.ceil(total_rows/count)
 
         start_key = ["", ""]
         windows = []
-        for _ in range(0, number_of_packages+1):
+        for index in range(0, number_of_packages):
             response = storage.db.view(
                 'releases/date_index',
                 startkey=start_key,
                 limit=count+1,
             )
-            if len(response.rows) >= 2:
-                next_key = response.rows[-2].key
-            else:
-                next_key = response.rows[-1].key
-            if response.rows:
-                window = (
-                    response.rows[0].key,
-                    next_key
-                )
-                windows.append(window)
+            if len(response.rows) >= count:
+                if index == number_of_packages - 1:
+                    next_key = response.rows[-1].key
+                else:
+                    next_key = response.rows[-2].key
+                windows.append((response.rows[0].key, next_key))
                 start_key = response.rows[-1].key
-        windows.append(
-            (start_key, ['9999-00-00T00:00:00.000000+03:00', 'x'*32]),
-        )
-        self.total = number_of_packages + 1
+            else:
+                windows.append((
+                    start_key,
+                    response.rows[-1].key
+                ))
+                break
+        self.total = len(windows)
         return windows
-
-
-

@@ -42,7 +42,7 @@ class FileHandler(BaseHandler):
 
             with open(name, 'w') as f:
                 self.renderer.dump(self.base_package, f)
-            self.logger.info('Done package {}'.format(self.base_package['publishedDate']))
+            self.logger.info('Done package {}'.format(self.name))
             if self.cfg.manifest:
                 self.logger.info("Added link {} to manifest".format(name))
                 self.cfg.manifest.releases.append(name)
