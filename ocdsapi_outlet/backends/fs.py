@@ -85,7 +85,7 @@ def fs(ctx, file_path, base_host):
     if cfg.with_zip:
         zip_file = os.path.join(cfg.file_path, C.ZIP_NAME)
         if os.path.exists(zip_file):
-            cfg.logger.warn("Crearing previous archive")
+            cfg.logger.warn("Clearing previous archive")
             os.remove(zip_file)
         
     cfg.base_host = base_host
