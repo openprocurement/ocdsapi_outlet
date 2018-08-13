@@ -70,7 +70,7 @@ class FSOutlet(BaseOutlet):
 @click.option(
     '--file-path',
     help="Destination path to store static dump",
-    required=True
+    default=C.ZIP_PATH
     )
 @click.option(
     '--base-host',
@@ -82,7 +82,7 @@ def fs(ctx, file_path, base_host):
     ctx.obj['backend'] = FSOutlet
     cfg = make_config(ctx)
     cfg.file_path = file_path
-    if cfg.with_zip:
+    if cfg.with_zip and cfg.clean_up:
         zip_file = os.path.join(cfg.file_path, C.ZIP_NAME)
         if os.path.exists(zip_file):
             cfg.logger.warn("Clearing previous archive")

@@ -17,11 +17,18 @@ class S3BucketHandler(BaseHandler):
 
     def __init__(self, cfg, base_package={}, name=""):
         super().__init__(cfg, base_package, name=name)
+
+        self.destination = os.path.join(cfg.file_path, cfg.key_prefix)
+        if not self.destination:
+            raise Exception("Invalid destination path")
+        if not os.path.exists(self.destination):
+            os.makedirs(self.destination)
         self.bucket, self.client = connect_bucket(cfg)
         self.bucket_location = self.client.get_bucket_location(Bucket=self.bucket)
         self.name = name
         if self.cfg.with_zip:
-            self.zip_handler = ZipHandler(cfg, '')
+            self.zip_handler = ZipHandler(cfg, cfg.file_path)
+            self.cfg.manifest.archive = self.zip_handler.path
 
     def write_releases(self, releases):
         """ Handle one release """
@@ -61,7 +68,7 @@ class S3BucketHandler(BaseHandler):
 
     def put_zip(self):
         """ Upload zip archive to s3 bucket """
-        key = os.path.join(self.cfg.key_prefix, C.ZIP_NAME)
+        key = os.path.join(self.destination, C.ZIP_NAME)
         try:
             self.logger.info("Started uploading archive")
             self.client.upload_file(
@@ -110,6 +117,11 @@ class S3Outlet(BaseOutlet):
 
 @click.command(name='s3')
 @click.option(
+    '--file-path',
+    help="Destination path to store static dump",
+    default=C.ZIP_PATH
+    )
+@click.option(
     '--bucket',
     help="Destination path to store static dump",
     required=True
@@ -125,12 +137,18 @@ class S3Outlet(BaseOutlet):
     required=False
 )
 @click.pass_context
-def s3(ctx, bucket, aws_access_key, aws_secred_key):
+def s3(ctx, file_path, bucket, aws_access_key, aws_secred_key):
     ctx.obj['backend'] = S3Outlet
     cfg = make_config(ctx)
     cfg.aws_access_key = aws_access_key
     cfg.aws_secred_key = aws_secred_key
     cfg.bucket = bucket
+    cfg.file_path = file_path
+    if cfg.with_zip and cfg.clean_up:
+        zip_file = os.path.join(cfg.file_path, C.ZIP_NAME)
+        if os.path.exists(zip_file):
+            cfg.logger.warn("Clearing previous archive")
+            os.remove(zip_file)
     packer = OCDSPacker(cfg)
     packer.run()
 
