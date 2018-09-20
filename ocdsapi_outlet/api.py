@@ -47,7 +47,14 @@ class Jobs(Resource):
     Simple API over current scheduler status
     """
     def get(self):
-        jobs = SCHEDULER.get_jobs()
+        jobs = [
+            {
+                "id": job.id,
+                "name": job.name
+            }
+            for job in SCHEDULER.get_jobs()
+        ]
+
         LOGGER.info("Current jobs {}".format(jobs))
         return jsonify({
             "jobs": jobs
