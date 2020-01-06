@@ -37,6 +37,6 @@ s3transfer==0.1.13
 six==1.11.0
 tzlocal==1.5.1
 urllib3==1.23
-waitress==1.1.0
+waitress==1.4.2
 Werkzeug==0.14.1
 zope.dottedname==4.2
