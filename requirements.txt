@@ -30,7 +30,7 @@ PasteDeploy==1.5.2
 premailer==3.2.0
 python-dateutil==2.7.3
 pytz==2018.5
-PyYAML==3.13
+PyYAML==5.4
 repoze.lru==0.7
 requests==2.19.1
 s3transfer==0.1.13
